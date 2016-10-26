@@ -10,7 +10,7 @@
 if (class_exists('AbstractQueuedJob')) {
 	class SolrReindexJob extends AbstractQueuedJob {
 
-		static $at_a_time = 100;
+		private static $at_a_time = 100;
 		
 		public function __construct($type = null) {
 			if (!$type && isset($_GET['type'])) {
@@ -40,7 +40,11 @@ if (class_exists('AbstractQueuedJob')) {
 				Subsite::disable_subsite_filter();
 			}
 
-			$pages = DataObject::get($this->reindexType, '"' . $this->reindexType.'"."ID" > ' . $this->lastIndexedID, 'ID ASC', '', '0, ' . self::$at_a_time);
+			$class = $this->reindexType;
+			$pages = $class::get();
+			$pages = $pages->filter(array('ID:GreaterThan' => $this->lastIndexedID));
+			$pages = $pages->limit(Config::inst()->get(__CLASS__, 'at_a_time'));
+			$pages = $pages->sort('ID ASC');
 			
 			if (ClassInfo::exists('Subsite')) {
 				Subsite::$disable_subsite_filter = false;
